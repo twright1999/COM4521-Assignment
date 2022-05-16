@@ -71,12 +71,25 @@ void openmp_stage1() {
 #endif
 }
 void openmp_stage2(unsigned char* output_global_average) {
+    // Calculate the average of each tile, and sum these to produce a whole image average.
+    unsigned long long whole_image_sum[4] = { 0, 0, 0, 0 };  // Only 3 is required for the assignment, but this version hypothetically supports upto 4 channels
+    for (unsigned int t = 0; t < TILES_X * TILES_Y; ++t) {
+        for (int ch = 0; ch < omp_input_image.channels; ++ch) {
+            mosaic_value[t * omp_input_image.channels + ch] = (unsigned char)(mosaic_sum[t * omp_input_image.channels + ch] / TILE_PIXELS);  // Integer division is fine here
+            whole_image_sum[ch] += mosaic_value[t * omp_input_image.channels + ch];
+        }
+    }
+    // Reduce the whole image sum to whole image average for the return value
+    for (int ch = 0; ch < omp_input_image.channels; ++ch) {
+        output_global_average[ch] = (unsigned char)(whole_image_sum[ch] / (TILES_X * TILES_Y));
+    }
+
     // assign input values to output values to skip stage
-    compact_mosaic = mosaic_value;
-    global_pixel_average = output_global_average;
+    // compact_mosaic = mosaic_value;
+    // global_pixel_average = output_global_average;
 
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    skip_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, compact_mosaic, global_pixel_average);
+    // skip_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, compact_mosaic, global_pixel_average);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation functions with the correct inputs
