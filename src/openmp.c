@@ -75,10 +75,11 @@ void openmp_stage1() {
     // Sum pixel data within each tile
 #pragma omp parallel for private(t_i, p_x, p_y, ch)
     for (t_i = 0; t_i < TILES_X * TILES_Y; ++t_i) {
-        const unsigned int tile_index = t_i * omp_input_image.channels;
+        // Get 2D indices from flat index
         const int t_x = t_i % TILES_X;
         const int t_y = t_i / TILES_X;
 
+        const unsigned int tile_index = t_i * omp_input_image.channels;
         const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
         for (p_x = 0; p_x < TILE_SIZE; ++p_x) {
             for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
