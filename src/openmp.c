@@ -85,11 +85,11 @@ void openmp_stage1() {
             for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
                 // For each colour channel
                 const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
-                for (ch = 0; ch < omp_input_image.channels; ++ch) {
-                    // Load pixel
-                    const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
-                    mosaic_sum[tile_index + ch] += pixel;
-                }
+
+                // Load pixel
+                mosaic_sum[tile_index] += omp_input_image.data[tile_offset + pixel_offset];
+                mosaic_sum[tile_index + 1] += omp_input_image.data[tile_offset + pixel_offset + 1];
+                mosaic_sum[tile_index + 2] += omp_input_image.data[tile_offset + pixel_offset + 2];
             }
         }
     }
