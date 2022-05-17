@@ -41,23 +41,51 @@ void openmp_stage1() {
     memset(mosaic_sum, 0, TILES_X * TILES_Y * omp_input_image.channels * sizeof(unsigned long long));
 
     // def iterators for pragma loop
-    int t_x, t_y, p_x, p_y, ch;
+//    int t_x, t_y, p_x, p_y, ch;
+//
+//    // Sum pixel data within each tile
+//#pragma omp parallel for private(t_x, t_y, p_x, p_y, ch)
+//    for (t_x = 0; t_x < TILES_X; ++t_x) {
+//        for (t_y = 0; t_y < TILES_Y; ++t_y) {
+//            const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
+//            const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
+//            for (p_x = 0; p_x < TILE_SIZE; ++p_x) {
+//                for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
+//                    // For each colour channel
+//                    const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
+//                    for (ch = 0; ch < omp_input_image.channels; ++ch) {
+//                        // Load pixel
+//                        const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
+//                        mosaic_sum[tile_index + ch] += pixel;
+//                    }
+//                }
+//            }
+//        }
+//    }
+
+    ///
+    ///
+    ///
+    /// 
+    /// 
+
+    // def iterators for pragma loop
+    int t_i, p_i, ch;
+
     // Sum pixel data within each tile
-#pragma omp parallel for private(t_x, t_y, p_x, p_y, ch)
-    for (t_x = 0; t_x < TILES_X; ++t_x) {
-        for (t_y = 0; t_y < TILES_Y; ++t_y) {
-            const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
-            const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
-            for (p_x = 0; p_x < TILE_SIZE; ++p_x) {
-                for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
-                    // For each colour channel
-                    const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
-                    for (ch = 0; ch < omp_input_image.channels; ++ch) {
-                        // Load pixel
-                        const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
-                        mosaic_sum[tile_index + ch] += pixel;
-                    }
-                }
+#pragma omp parallel for private(t_i, p_i, ch)
+    for (t_i = 0; t_i < TILES_X * TILES_Y; ++t_i) {
+        const unsigned int tile_index = t_i * omp_input_image.channels;
+        const int t_x = t_i % TILES_Y;
+        const int t_y = t_i / TILES_X;
+        const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
+        for (p_i = 0; p_i < TILE_SIZE * TILE_SIZE; ++p_i) {
+            // For each colour channel
+            const unsigned int pixel_offset = p_i * omp_input_image.channels;
+            for (ch = 0; ch < omp_input_image.channels; ++ch) {
+                // Load pixel
+                const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
+                mosaic_sum[tile_index + ch] += pixel;
             }
         }
     }
