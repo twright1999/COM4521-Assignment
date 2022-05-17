@@ -136,17 +136,17 @@ void openmp_stage3() {
     // Broadcast the compact mosaic pixels back out to the full image size
     
     // def iterators for pragma loop
-    int t_i, p_x, p_y;
+    int t, p_x, p_y;
 
     // Sum pixel data within each tile
-#pragma omp parallel for private(t_i, p_x, p_y)
+#pragma omp parallel for private(t, p_x, p_y)
     // For each tile
-    for (t_i = 0; t_i < TILES_X * TILES_Y; ++t_i) {
+    for (t = 0; t < TILES_X * TILES_Y; ++t) {
         // Get 2D indices from flat index
-        const int t_x = t_i % TILES_X;
-        const int t_y = t_i / TILES_X;
+        const int t_x = t % TILES_X;
+        const int t_y = t / TILES_X;
 
-        const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
+        const unsigned int tile_index = t * omp_input_image.channels;
         const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
 
         // For each pixel within the tile
