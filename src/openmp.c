@@ -70,22 +70,25 @@ void openmp_stage1() {
     /// 
 
     // def iterators for pragma loop
-    int t_i, p_i, ch;
+    int t_i, p_x, p_y, ch;
 
     // Sum pixel data within each tile
-#pragma omp parallel for private(t_i, p_i, ch)
+#pragma omp parallel for private(t_i, p_x, p_y, ch)
     for (t_i = 0; t_i < TILES_X * TILES_Y; ++t_i) {
         const unsigned int tile_index = t_i * omp_input_image.channels;
-        const int t_x = t_i % TILES_Y;
+        const int t_x = t_i % TILES_X;
         const int t_y = t_i / TILES_X;
+
         const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
-        for (p_i = 0; p_i < TILE_SIZE * TILE_SIZE; ++p_i) {
-            // For each colour channel
-            const unsigned int pixel_offset = p_i * omp_input_image.channels;
-            for (ch = 0; ch < omp_input_image.channels; ++ch) {
-                // Load pixel
-                const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
-                mosaic_sum[tile_index + ch] += pixel;
+        for (p_x = 0; p_x < TILE_SIZE; ++p_x) {
+            for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
+                // For each colour channel
+                const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
+                for (ch = 0; ch < omp_input_image.channels; ++ch) {
+                    // Load pixel
+                    const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
+                    mosaic_sum[tile_index + ch] += pixel;
+                }
             }
         }
     }
@@ -151,5 +154,15 @@ void openmp_stage3() {
 #endif    
 }
 void openmp_end(Image *output_image) {
+    // Store return value
+    output_image->width = omp_output_image.width;
+    output_image->height = omp_output_image.height;
+    output_image->channels = omp_output_image.channels;
+    memcpy(output_image->data, omp_output_image.data, output_image->width * output_image->height * output_image->channels * sizeof(unsigned char));
+    // Release allocations
+    free(omp_output_image.data);
+    free(omp_input_image.data);
+    free(mosaic_value);
+    free(mosaic_sum);
     
 }
