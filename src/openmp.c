@@ -43,7 +43,7 @@ void openmp_stage1() {
     // def iterators for pragma loop
     int t_x, t_y, p_x, p_y, ch;
     // Sum pixel data within each tile
-#pragma omp parallel for private(t_x, t_y, p_x, p_y, ch) 
+#pragma omp parallel for private(t_x, t_y, p_x, p_y, ch)
     for (t_x = 0; t_x < TILES_X; ++t_x) {
         for (t_y = 0; t_y < TILES_Y; ++t_y) {
             const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
@@ -97,8 +97,25 @@ void openmp_stage2(unsigned char* output_global_average) {
 #endif    
 }
 void openmp_stage3() {
+    // Broadcast the compact mosaic pixels back out to the full image size
+    // For each tile
+    for (unsigned int t_x = 0; t_x < TILES_X; ++t_x) {
+        for (unsigned int t_y = 0; t_y < TILES_Y; ++t_y) {
+            const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
+            const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
+
+            // For each pixel within the tile
+            for (unsigned int p_x = 0; p_x < TILE_SIZE; ++p_x) {
+                for (unsigned int p_y = 0; p_y < TILE_SIZE; ++p_y) {
+                    const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
+                    // Copy whole pixel
+                    memcpy(omp_output_image.data + tile_offset + pixel_offset, mosaic_value + tile_index, omp_input_image.channels);
+                }
+            }
+        }
+    }
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    skip_broadcast(&omp_input_image, mosaic_value, &omp_output_image);
+    // skip_broadcast(&omp_input_image, mosaic_value, &omp_output_image);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation function with the correct inputs
