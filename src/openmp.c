@@ -41,36 +41,6 @@ void openmp_stage1() {
     memset(mosaic_sum, 0, TILES_X * TILES_Y * omp_input_image.channels * sizeof(unsigned long long));
 
     // def iterators for pragma loop
-//    int t_x, t_y, p_x, p_y, ch;
-//
-//    // Sum pixel data within each tile
-//#pragma omp parallel for private(t_x, t_y, p_x, p_y, ch)
-//    for (t_x = 0; t_x < TILES_X; ++t_x) {
-//        for (t_y = 0; t_y < TILES_Y; ++t_y) {
-//            const unsigned int tile_index = (t_y * TILES_X + t_x) * omp_input_image.channels;
-//            const unsigned int tile_offset = (t_y * TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * omp_input_image.channels;
-//            for (p_x = 0; p_x < TILE_SIZE; ++p_x) {
-//                for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
-//                    // For each colour channel
-//                    const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
-//                    for (ch = 0; ch < omp_input_image.channels; ++ch) {
-//                        // Load pixel
-//                        const unsigned char pixel = omp_input_image.data[tile_offset + pixel_offset + ch];
-//                        mosaic_sum[tile_index + ch] += pixel;
-//                    }
-//                }
-//            }
-//        }
-//    }
-
-    ///
-    ///
-    ///
-    /// 
-    /// 
-    /// 
-
-    // def iterators for pragma loop
     int t, p_x, p_y;
 
     // Sum pixel data within each tile
@@ -106,7 +76,7 @@ void openmp_stage1() {
     validate_tile_sum(&omp_input_image, mosaic_sum);
 #endif
 }
-void openmp_stage2(unsigned char* output_global_average){
+void openmp_stage2(unsigned char* output_global_average) {
     // Calculate the average of each tile, and sum these to produce a whole image average.
 
     const int TILES_TOTAL = TILES_X * TILES_Y;
@@ -146,6 +116,7 @@ void openmp_stage2(unsigned char* output_global_average){
 
     // Optionally during development call the skip function with the correct inputs to skip this stage
     // skip_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, compact_mosaic, global_pixel_average);
+
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation functions with the correct inputs
