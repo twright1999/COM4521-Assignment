@@ -106,19 +106,39 @@ void openmp_stage1() {
     validate_tile_sum(&omp_input_image, mosaic_sum);
 #endif
 }
-void openmp_stage2(unsigned char* output_global_average) {
+void openmp_stage2(unsigned char* output_global_average){
     // Calculate the average of each tile, and sum these to produce a whole image average.
+
+    const int TILES_TOTAL = TILES_X * TILES_Y;
+
+    int t;
+    int whole_image_sum_r;
+    int whole_image_sum_g;
+    int whole_image_sum_b;
+
     unsigned long long whole_image_sum[4] = { 0, 0, 0, 0 };  // Only 3 is required for the assignment, but this version hypothetically supports upto 4 channels
-    for (unsigned int t = 0; t < TILES_X * TILES_Y; ++t) {
-        for (int ch = 0; ch < omp_input_image.channels; ++ch) {
-            mosaic_value[t * omp_input_image.channels + ch] = (unsigned char)(mosaic_sum[t * omp_input_image.channels + ch] / TILE_PIXELS);  // Integer division is fine here
-            whole_image_sum[ch] += mosaic_value[t * omp_input_image.channels + ch];
-        }
+
+#pragma omp parallel for reduction(+: whole_image_sum_r, whole_image_sum_g, whole_image_sum_b) private(t)
+    for (t = 0; t < TILES_TOTAL; ++t) {
+        const unsigned int tile_index = t * omp_input_image.channels;
+
+        mosaic_value[tile_index] = (unsigned char)(mosaic_sum[tile_index] / TILE_PIXELS);  // Integer division is fine here
+        mosaic_value[tile_index + 1] = (unsigned char)(mosaic_sum[tile_index + 1] / TILE_PIXELS);  // Integer division is fine here
+        mosaic_value[tile_index + 2] = (unsigned char)(mosaic_sum[tile_index + 2] / TILE_PIXELS);  // Integer division is fine here
+
+        whole_image_sum_r += mosaic_value[tile_index];
+        whole_image_sum_g += mosaic_value[tile_index + 1];
+        whole_image_sum_b += mosaic_value[tile_index + 2];
     }
+
+    whole_image_sum[0] = whole_image_sum_r;
+    whole_image_sum[1] = whole_image_sum_g;
+    whole_image_sum[2] = whole_image_sum_b;
+
     // Reduce the whole image sum to whole image average for the return value
-    for (int ch = 0; ch < omp_input_image.channels; ++ch) {
-        output_global_average[ch] = (unsigned char)(whole_image_sum[ch] / (TILES_X * TILES_Y));
-    }
+    output_global_average[0] = (unsigned char)(whole_image_sum[0] / (TILES_TOTAL));
+    output_global_average[1] = (unsigned char)(whole_image_sum[1] / (TILES_TOTAL));
+    output_global_average[2] = (unsigned char)(whole_image_sum[2] / (TILES_TOTAL));
 
     // assign input values to output values to skip stage
     // compact_mosaic = mosaic_value;
