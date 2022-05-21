@@ -1,0 +1,26 @@
+{
+  "FileVersion": 2,
+  "Id": "4f218af7-db0c-4b45-9b51-3a4b673da8bc",
+  "Items": [
+    {
+      "Id": "bc1e9f1c-0ee9-4b76-881b-bf0f26587f76",
+      "Command": "CPU"
+    },
+    {
+      "Id": "93a559bc-acf1-4ffa-85db-4211363ad575",
+      "Command": "OPENMP"
+    },
+    {
+      "Id": "fc6b3c9b-fbd4-4512-8269-d84be723e50e",
+      "Command": "samples/1024x1024.png"
+    },
+    {
+      "Id": "e12b8016-bb10-471a-a448-73f3aed5d931",
+      "Command": "result.png"
+    },
+    {
+      "Id": "d5af00d2-49fd-46f7-80d9-f65b261a0afe",
+      "Command": "--bench"
+    }
+  ]
+}
