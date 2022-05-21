@@ -1,8 +1,10 @@
 #include "cuda.cuh"
-
 #include <cstring>
-
 #include "helper.h"
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <stdlib.h>
+#include <string.h>
 
 ///
 /// Algorithm storage
@@ -53,7 +55,7 @@ void cuda_begin(const Image *input_image) {
 }
 void cuda_stage1() {
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    // skip_tile_sum(input_image, mosaic_sum);
+    skip_tile_sum(&cuda_input_image, d_mosaic_sum);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation function with the correct inputs
@@ -64,7 +66,7 @@ void cuda_stage1() {
 }
 void cuda_stage2(unsigned char* output_global_average) {
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    // skip_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, compact_mosaic, global_pixel_average);
+    skip_compact_mosaic(cuda_TILES_X, cuda_TILES_Y, d_mosaic_sum, d_compact_mosaic, d_global_pixel_average);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation functions with the correct inputs
@@ -75,7 +77,7 @@ void cuda_stage2(unsigned char* output_global_average) {
 }
 void cuda_stage3() {
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    // skip_broadcast(input_image, compact_mosaic, output_image);
+    skip_broadcast(&cuda_input_image, d_compact_mosaic, &cuda_output_image);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation function with the correct inputs
