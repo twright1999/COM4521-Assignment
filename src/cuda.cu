@@ -24,6 +24,9 @@ unsigned char* d_output_image_data;
 // Pointer to device buffer for the global pixel average sum, this must be passed to a kernel to be used on device
 unsigned long long* d_global_pixel_sum;
 
+unsigned char* compact_mosaic;
+unsigned char* global_pixel_average;
+
 void cuda_begin(const Image *input_image) {
     // These are suggested CUDA memory allocations that match the CPU implementation
     // If you would prefer, you can rewrite this function (and cuda_end()) to suit your preference
@@ -66,7 +69,7 @@ void cuda_stage1() {
 }
 void cuda_stage2(unsigned char* output_global_average) {
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    skip_compact_mosaic(cuda_TILES_X, cuda_TILES_Y, d_mosaic_sum, d_compact_mosaic, d_global_pixel_average);
+    skip_compact_mosaic(cuda_TILES_X, cuda_TILES_Y, d_mosaic_sum, d_mosaic_value, output_global_average);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation functions with the correct inputs
@@ -77,7 +80,7 @@ void cuda_stage2(unsigned char* output_global_average) {
 }
 void cuda_stage3() {
     // Optionally during development call the skip function with the correct inputs to skip this stage
-    skip_broadcast(&cuda_input_image, d_compact_mosaic, &cuda_output_image);
+    skip_broadcast(&cuda_input_image, d_mosaic_value, &cuda_input_image);
 
 #ifdef VALIDATION
     // TODO: Uncomment and call the validation function with the correct inputs
