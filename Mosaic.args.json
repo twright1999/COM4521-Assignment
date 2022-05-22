@@ -3,6 +3,10 @@
   "Id": "4f218af7-db0c-4b45-9b51-3a4b673da8bc",
   "Items": [
     {
+      "Id": "caff07d6-6ac5-4055-8063-a2422951aa63",
+      "Command": "CUDA"
+    },
+    {
       "Id": "bc1e9f1c-0ee9-4b76-881b-bf0f26587f76",
       "Command": "CPU"
     },
@@ -13,6 +17,14 @@
     {
       "Id": "fc6b3c9b-fbd4-4512-8269-d84be723e50e",
       "Command": "samples/1024x1024.png"
+    },
+    {
+      "Id": "155abfe8-3604-409b-8047-be85dee0e800",
+      "Command": "killua.jpg"
+    },
+    {
+      "Id": "d244d878-32bb-4191-a670-852052941377",
+      "Command": "samples/256x256.png"
     },
     {
       "Id": "e12b8016-bb10-471a-a448-73f3aed5d931",
