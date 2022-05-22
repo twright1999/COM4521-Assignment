@@ -27,6 +27,8 @@ unsigned char* d_output_image_data;
 // Pointer to device buffer for the global pixel average sum, this must be passed to a kernel to be used on device
 unsigned long long* d_global_pixel_sum;
 
+// Host copy of mosaic sum for validation
+unsigned long long* cuda_mosaic_sum;
 // device variables
 __device__ int d_input_image_width;
 __device__ int d_input_image_channels;
@@ -61,9 +63,13 @@ void cuda_begin(const Image *input_image) {
     // Allocate and zero buffer for calculation global pixel average
     CUDA_CALL(cudaMalloc(&d_global_pixel_sum, input_image->channels * sizeof(unsigned long long)));
 
+    // Copy host variables to the host
     CUDA_CALL(cudaMemcpyToSymbol(d_input_image_width, &input_image->width, sizeof(int)));
     CUDA_CALL(cudaMemcpyToSymbol(d_input_image_channels, &input_image->channels, sizeof(int)));
     CUDA_CALL(cudaMemcpyToSymbol(d_TILES_X, &cuda_TILES_X, sizeof(unsigned int)));
+
+    // Allocate host mosaic sum for validation
+    cuda_mosaic_sum = (unsigned long long*)malloc(cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long));
 }
 
 __global__ void stage1(unsigned char *d_input_image_data, unsigned long long* d_mosaic_sum) {
@@ -101,10 +107,8 @@ void cuda_stage1() {
     // TODO: Uncomment and call the validation function with the correct inputs
     // You will need to copy the data back to host before passing to these functions
     // (Ensure that data copy is carried out within the ifdef VALIDATION so that it doesn't affect your benchmark results!)
-    unsigned long long* mosaic_sum;
-    mosaic_sum = (unsigned long long*)malloc(cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long));
-    cudaMemcpy(mosaic_sum, d_mosaic_sum, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-    validate_tile_sum(&cuda_input_image, mosaic_sum);
+    cudaMemcpy(cuda_mosaic_sum, d_mosaic_sum, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    validate_tile_sum(&cuda_input_image, cuda_mosaic_sum);
 #endif
 }
 void cuda_stage2(unsigned char* output_global_average) {
@@ -169,4 +173,7 @@ void cuda_end(Image *output_image) {
     CUDA_CALL(cudaFree(d_mosaic_sum));
     CUDA_CALL(cudaFree(d_input_image_data));
     CUDA_CALL(cudaFree(d_output_image_data));
+
+    // Added release allocations
+    free(cuda_mosaic_sum);
 }
