@@ -29,6 +29,11 @@ unsigned long long* d_global_pixel_sum;
 
 // Host copy of mosaic sum for validation
 unsigned long long* cuda_mosaic_sum;
+// Host copy of mosaic value for validation
+unsigned char* cuda_mosaic_value;
+// Host copy of output image for validation
+Image cuda_output_image;
+
 // device variables
 __device__ int d_input_image_width;
 __device__ int d_input_image_channels;
@@ -70,6 +75,10 @@ void cuda_begin(const Image *input_image) {
 
     // Allocate host mosaic sum for validation
     cuda_mosaic_sum = (unsigned long long*)malloc(cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long));
+    // Allocate host mosaic value for validation
+    cuda_mosaic_value = (unsigned char*)malloc(cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned char));
+    // Allocate host output image for validation
+    cuda_output_image.data = (unsigned char*)malloc(image_data_size);
 }
 
 __global__ void stage1(unsigned char *d_input_image_data, unsigned long long* d_mosaic_sum) {
@@ -131,24 +140,44 @@ void cuda_stage2(unsigned char* output_global_average) {
     // validate_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, mosaic_value, output_global_average);
 #endif    
 }
+
+__global__ void stage3(unsigned char* d_input_image_data, unsigned char* d_output_image_data, unsigned char* d_mosaic_value) {
+    unsigned int t_x = blockIdx.x;
+    unsigned int t_y = blockIdx.y;
+    unsigned int p_x = threadIdx.x;
+    unsigned int p_y = threadIdx.y;
+
+    const unsigned int tile_index = (t_y * d_TILES_X + t_x) * d_input_image_channels;
+    const unsigned int tile_offset = (t_y * d_TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * d_input_image_channels;
+    const unsigned int pixel_offset = (p_y * d_input_image_width + p_x) * d_input_image_channels;
+
+
+    // Time ~0.546ms (4096x4096)
+    //memcpy(d_output_image_data + tile_offset + pixel_offset, d_mosaic_value + tile_index, d_input_image_channels);
+
+
+    // Time ~0.469ms (4096x4096)
+    // unsigned int ch = blockIdx.z;
+    // d_output_image_data[tile_offset + pixel_offset + ch] = d_mosaic_value[tile_index + ch];
+
+
+    // Best time ~0.54ms (4096x4096)
+    d_output_image_data[tile_offset + pixel_offset] = d_mosaic_value[tile_index];
+    d_output_image_data[tile_offset + pixel_offset + 1] = d_mosaic_value[tile_index + 1];
+    d_output_image_data[tile_offset + pixel_offset + 2] = d_mosaic_value[tile_index + 2];
+}
 void cuda_stage3() {
     // Broadcast the compact mosaic pixels back out to the full image size
-    // For each tile
-    //for (unsigned int t_x = 0; t_x < cuda_TILES_X; ++t_x) {
-    //    for (unsigned int t_y = 0; t_y < cuda_TILES_Y; ++t_y) {
-    //        const unsigned int tile_index = (t_y * cuda_TILES_X + t_x) * cuda_input_image.channels;
-    //        const unsigned int tile_offset = (t_y * cuda_TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * cuda_input_image.channels;
+    
+    unsigned int block_width = TILE_SIZE;
+    unsigned int grid_width = (unsigned int)ceil((double)cuda_input_image.width / block_width);
+    unsigned int grid_height = (unsigned int)ceil((double)cuda_input_image.height / block_width);
 
-    //        // For each pixel within the tile
-    //        for (unsigned int p_x = 0; p_x < TILE_SIZE; ++p_x) {
-    //            for (unsigned int p_y = 0; p_y < TILE_SIZE; ++p_y) {
-    //                const unsigned int pixel_offset = (p_y * cuda_input_image.width + p_x) * cuda_input_image.channels;
-    //                // Copy whole pixel
-    //                memcpy(d_output_image_data + tile_offset + pixel_offset, d_mosaic_value + tile_index, cuda_input_image.channels);
-    //            }
-    //        }
-    //    }
-    //}
+    dim3 blocksPerGrid(grid_width, grid_height, 1);
+    dim3 threadsPerBlock(block_width, block_width, 1);
+
+    stage3 << <blocksPerGrid, threadsPerBlock >> > (d_input_image_data, d_output_image_data, d_mosaic_value);
+
     // Optionally during development call the skip function with the correct inputs to skip this stage
     // skip_broadcast(&cuda_input_image, d_mosaic_value, &cuda_input_image);
 
@@ -156,7 +185,10 @@ void cuda_stage3() {
     // TODO: Uncomment and call the validation function with the correct inputs
     // You will need to copy the data back to host before passing to these functions
     // (Ensure that data copy is carried out within the ifdef VALIDATION so that it doesn't affect your benchmark results!)
-    // validate_broadcast(&input_image, mosaic_value, &output_image);
+    cudaMemcpy(cuda_mosaic_value, d_mosaic_value, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+    const size_t image_data_size = cuda_input_image.width * cuda_input_image.height * cuda_input_image.channels * sizeof(unsigned char);
+    cudaMemcpy(cuda_output_image.data, d_output_image_data, image_data_size, cudaMemcpyDeviceToHost);
+    validate_broadcast(&cuda_input_image, cuda_mosaic_value, &cuda_output_image);
 #endif    
 }
 void cuda_end(Image *output_image) {
@@ -176,4 +208,6 @@ void cuda_end(Image *output_image) {
 
     // Added release allocations
     free(cuda_mosaic_sum);
+    free(cuda_mosaic_value);
+    free(cuda_output_image.data);
 }
