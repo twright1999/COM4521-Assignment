@@ -82,9 +82,9 @@ void openmp_stage2(unsigned char* output_global_average) {
     const int TILES_TOTAL = TILES_X * TILES_Y;
 
     int t;
-    int whole_image_sum_r;
-    int whole_image_sum_g;
-    int whole_image_sum_b;
+    int whole_image_sum_r = 0;
+    int whole_image_sum_g = 0;
+    int whole_image_sum_b = 0;
 
     unsigned long long whole_image_sum[4] = { 0, 0, 0, 0 };  // Only 3 is required for the assignment, but this version hypothetically supports upto 4 channels
 
