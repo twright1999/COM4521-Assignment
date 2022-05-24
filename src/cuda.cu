@@ -145,9 +145,22 @@ __global__ void stage2(unsigned long long * d_mosaic_sum, unsigned char* d_mosai
     d_mosaic_value[t * d_input_image_channels + 1] = (unsigned char)(d_mosaic_sum[t * d_input_image_channels + 1] / TILE_PIXELS);
     d_mosaic_value[t * d_input_image_channels + 2] = (unsigned char)(d_mosaic_sum[t * d_input_image_channels + 2] / TILE_PIXELS);
 
-    atomicAdd(&d_global_pixel_sum[0], d_mosaic_value[t * d_input_image_channels]);
-    atomicAdd(&d_global_pixel_sum[1], d_mosaic_value[t * d_input_image_channels + 1]);
-    atomicAdd(&d_global_pixel_sum[2], d_mosaic_value[t * d_input_image_channels + 2]);
+    unsigned int r_sum = d_mosaic_value[t * d_input_image_channels];
+    unsigned int g_sum = d_mosaic_value[t * d_input_image_channels + 1];
+    unsigned int b_sum = d_mosaic_value[t * d_input_image_channels + 2];
+
+    for (int offset = 16; offset > 0; offset /= 2) {
+        r_sum += __shfl_down(r_sum, offset);
+        g_sum += __shfl_down(g_sum, offset);
+        b_sum += __shfl_down(b_sum, offset);
+    }
+
+    if (threadIdx.x % 32 == 0) {
+        atomicAdd(&d_global_pixel_sum[0], r_sum);
+        atomicAdd(&d_global_pixel_sum[1], g_sum);
+        atomicAdd(&d_global_pixel_sum[2], b_sum);
+    }
+
 
 
     // this is faster than 1 thread doing it ~ 0.07 > ~ 0.065
@@ -212,8 +225,8 @@ __global__ void stage3(unsigned char* d_input_image_data, unsigned char* d_outpu
 
 
     // Time ~0.469ms (4096x4096)
-    // unsigned int ch = blockIdx.z;
-    // d_output_image_data[tile_offset + pixel_offset + ch] = d_mosaic_value[tile_index + ch];
+    //unsigned int ch = blockIdx.z;
+    //d_output_image_data[tile_offset + pixel_offset + ch] = d_mosaic_value[tile_index + ch];
 
 
     // Best time ~0.54ms (4096x4096)
