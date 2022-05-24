@@ -93,52 +93,35 @@ void cuda_begin(const Image *input_image) {
 }
 
 __global__ void stage1(unsigned char *d_input_image_data, unsigned long long* d_mosaic_sum) {
-
     unsigned int t_x = blockIdx.x;
     unsigned int t_y = blockIdx.y;
     unsigned int p_x = threadIdx.x;
     unsigned int p_y = threadIdx.y;
-    
-    const unsigned int tile_index = (t_y * d_TILES_X + t_x) * d_input_image_channels;
-    const unsigned int tile_offset = (t_y * d_TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * d_input_image_channels;
-    const unsigned int pixel_offset = (p_y * d_input_image_width + p_x) * d_input_image_channels;
-    
-    const unsigned char pixel_r = d_input_image_data[tile_offset + pixel_offset];
-    const unsigned char pixel_g = d_input_image_data[tile_offset + pixel_offset + 1];
-    const unsigned char pixel_b = d_input_image_data[tile_offset + pixel_offset + 2];
-
-    atomicAdd(&d_mosaic_sum[tile_index], pixel_r);
-    atomicAdd(&d_mosaic_sum[tile_index + 1], pixel_g);
-    atomicAdd(&d_mosaic_sum[tile_index + 2], pixel_b);
-
-    /*unsigned int t_x = blockIdx.x;
-    unsigned int t_y = blockIdx.y;
-    unsigned int p_x = threadIdx.x;
-    unsigned int p_y = threadIdx.y;
-    unsigned int ch = blockIdx.z;
 
     const unsigned int tile_index = (t_y * d_TILES_X + t_x) * d_input_image_channels;
     const unsigned int tile_offset = (t_y * d_TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * d_input_image_channels;
     const unsigned int pixel_offset = (p_y * d_input_image_width + p_x) * d_input_image_channels;
 
-    unsigned char pixel_sum = d_input_image_data[tile_offset + pixel_offset + ch];
+    unsigned int pixel_r_sum = d_input_image_data[tile_offset + pixel_offset];
+    unsigned int pixel_g_sum = d_input_image_data[tile_offset + pixel_offset + 1];
+    unsigned int pixel_b_sum = d_input_image_data[tile_offset + pixel_offset + 2];
 
-    for (int offset = 16; offset > 0; offset /= 2)
-        pixel_sum += __shfl_down(pixel_sum, offset);
+    for (int offset = 16; offset > 0; offset /= 2) {
+        pixel_r_sum += __shfl_down(pixel_r_sum, offset);
+        pixel_g_sum += __shfl_down(pixel_g_sum, offset);
+        pixel_b_sum += __shfl_down(pixel_b_sum, offset);
+    }
 
     if (threadIdx.x % 32 == 0) {
-        printf("%d\n", pixel_sum);
-        atomicAdd(&d_mosaic_sum[tile_index + ch], pixel_sum);
-    }*/
+        atomicAdd(&d_mosaic_sum[tile_index], pixel_r_sum);
+        atomicAdd(&d_mosaic_sum[tile_index + 1], pixel_g_sum);
+        atomicAdd(&d_mosaic_sum[tile_index + 2], pixel_b_sum);
+    }
 }
 
 void cuda_stage1() {
-    unsigned int block_width = TILE_SIZE;
-    unsigned int grid_width = (unsigned int)ceil((double)cuda_input_image.width / block_width);
-    unsigned int grid_height = (unsigned int)ceil((double)cuda_input_image.height / block_width);
-
-    dim3 blocksPerGrid(grid_width, grid_height, 1);
-    dim3 threadsPerBlock(block_width, block_width, 1);
+    dim3 blocksPerGrid(cuda_TILES_X, cuda_TILES_Y, 1);
+    dim3 threadsPerBlock(TILE_SIZE, TILE_SIZE, 1);
 
     stage1 << <blocksPerGrid, threadsPerBlock >> > (d_input_image_data, d_mosaic_sum);
 
