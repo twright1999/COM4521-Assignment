@@ -145,8 +145,6 @@ void openmp_stage3() {
             for (p_y = 0; p_y < TILE_SIZE; ++p_y) {
                 const unsigned int pixel_offset = (p_y * omp_input_image.width + p_x) * omp_input_image.channels;
                 // Copy whole pixel
-
-               // memcpy(omp_output_image.data + tile_offset + pixel_offset, mosaic_value + tile_index, omp_input_image.channels);
                 omp_output_image.data[tile_offset + pixel_offset] = mosaic_value[tile_index];
                 omp_output_image.data[tile_offset + pixel_offset + 1] = mosaic_value[tile_index + 1];
                 omp_output_image.data[tile_offset + pixel_offset + 2] = mosaic_value[tile_index + 2];
