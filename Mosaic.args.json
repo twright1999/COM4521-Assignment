@@ -11,8 +11,24 @@
       "Command": "OPENMP"
     },
     {
+      "Id": "d244d878-32bb-4191-a670-852052941377",
+      "Command": "samples/256x256.png"
+    },
+    {
       "Id": "fc6b3c9b-fbd4-4512-8269-d84be723e50e",
       "Command": "samples/1024x1024.png"
+    },
+    {
+      "Id": "23d60a38-2fb5-427e-8695-da8c283e3d72",
+      "Command": "samples/2048x2048.png"
+    },
+    {
+      "Id": "cb521ae9-0122-4fd8-aacf-c45a0febe88d",
+      "Command": "samples/4096x4096.jpg"
+    },
+    {
+      "Id": "155abfe8-3604-409b-8047-be85dee0e800",
+      "Command": "killua.jpg"
     },
     {
       "Id": "e12b8016-bb10-471a-a448-73f3aed5d931",
