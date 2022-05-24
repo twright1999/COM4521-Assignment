@@ -160,27 +160,11 @@ __global__ void stage2(unsigned long long * d_mosaic_sum, unsigned char* d_mosai
         atomicAdd(&d_global_pixel_sum[1], g_sum);
         atomicAdd(&d_global_pixel_sum[2], b_sum);
     }
-
-
-
-    // this is faster than 1 thread doing it ~ 0.07 > ~ 0.065
-    /*if (threadIdx.x == 0 && blockIdx.x == 0)
-        d_output_global_average[0] = (unsigned char)(d_global_pixel_sum[0] / (d_TILES_X * d_TILES_Y));
-
-    if (threadIdx.x == 1 && blockIdx.x == 0)
-        d_output_global_average[1] = (unsigned char)(d_global_pixel_sum[1] / (d_TILES_X * d_TILES_Y));
-
-    if (threadIdx.x == 2 && blockIdx.x == 0)
-        d_output_global_average[2] = (unsigned char)(d_global_pixel_sum[2] / (d_TILES_X * d_TILES_Y));*/
-
-
 }
 void cuda_stage2(unsigned char* output_global_average) {
-    // dont base threads_per_block on tile size in this stage
-    unsigned int threads_per_block = cuda_TILES_X * cuda_TILES_Y;
-    if (threads_per_block > 1024)
-        threads_per_block = 1024;
-    unsigned int grid_size = (unsigned int)ceil(((double)(cuda_TILES_X * cuda_TILES_Y)) / threads_per_block);
+    unsigned int total_tiles = cuda_TILES_X * cuda_TILES_Y;
+    unsigned int grid_size = (unsigned int)ceil(((double)(cuda_TILES_X * cuda_TILES_Y)) / 1024);
+    unsigned int threads_per_block = (unsigned int)ceil((double)total_tiles / grid_size);
 
     dim3 blocksPerGrid(grid_size, 1, 1);
     dim3 threadsPerBlock(threads_per_block, 1, 1);
