@@ -190,7 +190,7 @@ void cuda_stage2(unsigned char* output_global_average) {
 #endif    
 }
 
-__global__ void stage3(unsigned char* d_input_image_data, unsigned char* d_output_image_data, unsigned char* d_mosaic_value) {
+__global__ void stage3(unsigned char* d_output_image_data, unsigned char* d_mosaic_value) {
     unsigned int t_x = blockIdx.x;
     unsigned int t_y = blockIdx.y;
     unsigned int p_x = threadIdx.x;
@@ -199,7 +199,6 @@ __global__ void stage3(unsigned char* d_input_image_data, unsigned char* d_outpu
     const unsigned int tile_index = (t_y * d_TILES_X + t_x) * d_input_image_channels;
     const unsigned int tile_offset = (t_y * d_TILES_X * TILE_SIZE * TILE_SIZE + t_x * TILE_SIZE) * d_input_image_channels;
     const unsigned int pixel_offset = (p_y * d_input_image_width + p_x) * d_input_image_channels;
-
 
     // Time ~0.546ms (4096x4096)
     //memcpy(d_output_image_data + tile_offset + pixel_offset, d_mosaic_value + tile_index, d_input_image_channels);
@@ -218,14 +217,10 @@ __global__ void stage3(unsigned char* d_input_image_data, unsigned char* d_outpu
 void cuda_stage3() {
     // Broadcast the compact mosaic pixels back out to the full image size
     
-    unsigned int block_width = TILE_SIZE;
-    unsigned int grid_width = (unsigned int)ceil((double)cuda_input_image.width / block_width);
-    unsigned int grid_height = (unsigned int)ceil((double)cuda_input_image.height / block_width);
+    dim3 blocksPerGrid(cuda_TILES_X, cuda_TILES_Y, 1);
+    dim3 threadsPerBlock(TILE_SIZE, TILE_SIZE, 1);
 
-    dim3 blocksPerGrid(grid_width, grid_height, 1);
-    dim3 threadsPerBlock(block_width, block_width, 1);
-
-    stage3 << <blocksPerGrid, threadsPerBlock >> > (d_input_image_data, d_output_image_data, d_mosaic_value);
+    stage3 << <blocksPerGrid, threadsPerBlock >> > (d_output_image_data, d_mosaic_value);
 
     // Optionally during development call the skip function with the correct inputs to skip this stage
     // skip_broadcast(&cuda_input_image, d_mosaic_value, &cuda_input_image);
