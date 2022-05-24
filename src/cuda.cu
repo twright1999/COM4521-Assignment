@@ -190,21 +190,18 @@ void cuda_stage2(unsigned char* output_global_average) {
     // Optionally during development call the skip function with the correct inputs to skip this stage
     // skip_compact_mosaic(cuda_TILES_X, cuda_TILES_Y, d_mosaic_sum, d_mosaic_value, output_global_average);
 
-#ifdef VALIDATION
-    // TODO: Uncomment and call the validation functions with the correct inputs
-    // You will need to copy the data back to host before passing to these functions
-    // (Ensure that data copy is carried out within the ifdef VALIDATION so that it doesn't affect your benchmark results!)
-
-
-
-    cudaMemcpy(cuda_mosaic_sum, d_mosaic_sum, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
-    cudaMemcpy(cuda_mosaic_value, d_mosaic_value, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned char), cudaMemcpyDeviceToHost);
     cudaMemcpy(cuda_global_pixel_sum, d_global_pixel_sum, cuda_input_image.channels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
 
     output_global_average[0] = (unsigned char)(cuda_global_pixel_sum[0] / (cuda_TILES_X * cuda_TILES_Y));
     output_global_average[1] = (unsigned char)(cuda_global_pixel_sum[1] / (cuda_TILES_X * cuda_TILES_Y));
     output_global_average[2] = (unsigned char)(cuda_global_pixel_sum[2] / (cuda_TILES_X * cuda_TILES_Y));
 
+#ifdef VALIDATION
+    // TODO: Uncomment and call the validation functions with the correct inputs
+    // You will need to copy the data back to host before passing to these functions
+    // (Ensure that data copy is carried out within the ifdef VALIDATION so that it doesn't affect your benchmark results!)
+    cudaMemcpy(cuda_mosaic_sum, d_mosaic_sum, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned long long), cudaMemcpyDeviceToHost);
+    cudaMemcpy(cuda_mosaic_value, d_mosaic_value, cuda_TILES_X * cuda_TILES_Y * cuda_input_image.channels * sizeof(unsigned char), cudaMemcpyDeviceToHost);
     validate_compact_mosaic(cuda_TILES_X, cuda_TILES_Y, cuda_mosaic_sum, cuda_mosaic_value, output_global_average);
 #endif    
 }
