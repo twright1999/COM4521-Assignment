@@ -86,8 +86,6 @@ void openmp_stage2(unsigned char* output_global_average) {
     int whole_image_sum_g = 0;
     int whole_image_sum_b = 0;
 
-    unsigned long long whole_image_sum[4] = { 0, 0, 0, 0 };  // Only 3 is required for the assignment, but this version hypothetically supports upto 4 channels
-
 #pragma omp parallel for reduction(+: whole_image_sum_r, whole_image_sum_g, whole_image_sum_b) private(t)
     for (t = 0; t < TILES_TOTAL; ++t) {
         const unsigned int tile_index = t * omp_input_image.channels;
@@ -101,14 +99,10 @@ void openmp_stage2(unsigned char* output_global_average) {
         whole_image_sum_b += mosaic_value[tile_index + 2];
     }
 
-    whole_image_sum[0] = whole_image_sum_r;
-    whole_image_sum[1] = whole_image_sum_g;
-    whole_image_sum[2] = whole_image_sum_b;
-
     // Reduce the whole image sum to whole image average for the return value
-    output_global_average[0] = (unsigned char)(whole_image_sum[0] / (TILES_TOTAL));
-    output_global_average[1] = (unsigned char)(whole_image_sum[1] / (TILES_TOTAL));
-    output_global_average[2] = (unsigned char)(whole_image_sum[2] / (TILES_TOTAL));
+    output_global_average[0] = (unsigned char)(whole_image_sum_r / (TILES_TOTAL));
+    output_global_average[1] = (unsigned char)(whole_image_sum_g / (TILES_TOTAL));
+    output_global_average[2] = (unsigned char)(whole_image_sum_b / (TILES_TOTAL));
 
     // assign input values to output values to skip stage
     // compact_mosaic = mosaic_value;
