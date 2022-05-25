@@ -37,6 +37,7 @@ void openmp_begin(const Image *input_image) {
     omp_output_image.data = (unsigned char*)malloc(input_image->width * input_image->height * input_image->channels * sizeof(unsigned char));
 }
 void openmp_stage1() {
+    // Sum all pixels in each tile
     // Reset sum memory to 0
     memset(mosaic_sum, 0, TILES_X * TILES_Y * omp_input_image.channels * sizeof(unsigned long long));
 
@@ -72,7 +73,6 @@ void openmp_stage1() {
     // skip_tile_sum(&omp_input_image, mosaic_sum);
 
 #ifdef VALIDATION
-    // TODO: Uncomment and call the validation function with the correct inputs
     validate_tile_sum(&omp_input_image, mosaic_sum);
 #endif
 }
@@ -81,11 +81,13 @@ void openmp_stage2(unsigned char* output_global_average) {
 
     const int TILES_TOTAL = TILES_X * TILES_Y;
 
+    // def iterators for pragma loop
     int t;
     int whole_image_sum_r = 0;
     int whole_image_sum_g = 0;
     int whole_image_sum_b = 0;
 
+    // Calculate the average pixel value for each tile and sum to find the global average
 #pragma omp parallel for reduction(+: whole_image_sum_r, whole_image_sum_g, whole_image_sum_b) private(t)
     for (t = 0; t < TILES_TOTAL; ++t) {
         const unsigned int tile_index = t * omp_input_image.channels;
@@ -110,10 +112,7 @@ void openmp_stage2(unsigned char* output_global_average) {
 
     // Optionally during development call the skip function with the correct inputs to skip this stage
     // skip_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, compact_mosaic, global_pixel_average);
-
-
 #ifdef VALIDATION
-    // TODO: Uncomment and call the validation functions with the correct inputs
     validate_compact_mosaic(TILES_X, TILES_Y, mosaic_sum, mosaic_value, output_global_average);
 #endif    
 }
@@ -149,7 +148,6 @@ void openmp_stage3() {
     // skip_broadcast(&omp_input_image, mosaic_value, &omp_output_image);
 
 #ifdef VALIDATION
-    // TODO: Uncomment and call the validation function with the correct inputs
     validate_broadcast(&omp_input_image, mosaic_value, &omp_output_image);
 #endif    
 }
